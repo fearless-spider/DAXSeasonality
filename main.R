@@ -21,5 +21,6 @@ dax %>%
   geom_line() +
   labs(x = "", y = "Adjusted Price") +
   scale_x_date(expand = c(0, 0), breaks = "5 years") +
-  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(trans = log2_trans(),
+    breaks = trans_breaks("log2", function(x) 2^x)) +
   theme_classic()
