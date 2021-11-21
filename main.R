@@ -60,3 +60,12 @@ dax_seasonality_summary %>%
   scale_x_continuous(expand = c(0, 0), breaks = pretty_breaks()) +
   scale_y_continuous(breaks = pretty_breaks()) +
   theme_classic()
+
+dax_seasonality_summary %>%
+  ggplot(aes(x = trading_day)) +
+  geom_ribbon(aes(ymin = q05, ymax = q95), alpha = 0.25) +
+  geom_line(aes(y = mean)) +
+  labs(x = "Trading Days", y = "Cumulative Returns (in %)") +
+  scale_x_continuous(expand = c(0, 0), breaks = pretty_breaks()) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  theme_classic()
