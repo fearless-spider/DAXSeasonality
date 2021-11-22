@@ -5,7 +5,7 @@ library(knitr)      # for html knitting
 library(kableExtra) # for nicer tables
 
 dax_raw <- tq_get("^GDAXI", get = "stock.prices",
-                  from = "1988-07-01")
+                  from = "2009-03-01", to = "2018-01-01")
 
 dax <- dax_raw %>%
   select(date, price = adjusted)
@@ -26,7 +26,7 @@ dax %>%
   theme_classic()
 
 dax_nested <- dax %>%
-  filter(date >= "1988-07-01" & date <= "1999-12-31") %>%
+  filter(date >= "2009-03-01" & date <= "2018-01-01") %>%
   mutate(year = year(date)) %>%
   group_by(year) %>%
   nest()
@@ -167,3 +167,34 @@ dax_monthly %>%
   labs(x = "", y = "Annual Excess Return (in %)", fill = "Strategy") +
   scale_x_continuous(expand = c(0, 0), breaks = pretty_breaks()) +
   theme_classic()
+
+# Plotting the overall cumulative excess return of the five strategies confirms these conjectures
+dax_monthly %>%
+  arrange(date) %>%
+  mutate(`Buy and Hold` = 100 + cumsum(excess_ret),
+         `Seasonality` = 100 + cumsum(excess_ret_seasonality),
+         `Seasonality-Short` = 100 + cumsum(excess_ret_seasonality_short),
+         `Halloween` = 100 + cumsum(excess_ret_halloween),
+         `Halloween-Short` = 100 + cumsum(excess_ret_halloween_short)) %>%
+  select(date, `Buy and Hold`, `Seasonality`, `Seasonality-Short`,
+         `Halloween`, `Halloween-Short`) %>%
+  pivot_longer(-date, names_to = "strategy", values_to = "cum_excess_ret") %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = cum_excess_ret, color = strategy)) +
+  scale_x_date(expand = c(0, 0), breaks = pretty_breaks()) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "", y = "Cumulative Excess Return (in %)", color = "Strategy") +
+  theme_classic()
+
+# Which of these strategies might constitute a better investment opportunity?
+sharpe_ratio <- function(x) {
+  sqrt(12) *  mean(x) / sd(x)
+}
+
+dax_monthly %>%
+  arrange(date) %>%
+  summarize(`Buy and Hold` = sharpe_ratio(excess_ret),
+            `Seasonality` = sharpe_ratio(excess_ret_seasonality),
+            `Seasonality-Short` = sharpe_ratio(excess_ret_seasonality_short),
+            `Halloween` = sharpe_ratio(excess_ret_halloween),
+            `Halloween-Short` = sharpe_ratio(excess_ret_halloween_short))
