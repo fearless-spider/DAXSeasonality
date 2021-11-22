@@ -102,7 +102,7 @@ rf <- rf_raw %>%
          year = year(date),
          month = month(date),
          rf = as.numeric(RF)) %>%
-  filter(date <= "2021-9-01") %>%
+  filter(date <= "2021-10-01") %>%
   select(year, month, rf)
 
 dax_monthly <- dax_monthly %>%
@@ -126,3 +126,11 @@ dax_monthly %>%
             `t-Statistic` = sqrt(n()) * mean(excess_ret) / sd(excess_ret) ) %>%
   kable(digits = 2) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+dax_monthly %>%
+  ggplot(aes(x = month_factor, y = excess_ret)) +
+  geom_boxplot() +
+  labs(x = "", y = "Monthly Excess Return (in %)") +
+  theme_classic()
+
+summary(lm(excess_ret ~ month_factor, data = dax_monthly), robust = TRUE)
