@@ -102,7 +102,7 @@ rf <- rf_raw %>%
          year = year(date),
          month = month(date),
          rf = as.numeric(RF)) %>%
-  filter(date <= "2021-10-01") %>%
+  filter(date <= "2021-09-01") %>%
   select(year, month, rf)
 
 dax_monthly <- dax_monthly %>%
