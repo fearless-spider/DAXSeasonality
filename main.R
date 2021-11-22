@@ -133,4 +133,37 @@ dax_monthly %>%
   labs(x = "", y = "Monthly Excess Return (in %)") +
   theme_classic()
 
-summary(lm(excess_ret ~ month_factor, data = dax_monthly), robust = TRUE)
+#summary(lm(excess_ret ~ month_factor, data = dax_monthly), robust = TRUE)
+
+halloween_months <- c(11, 12, 1, 2, 3, 4)
+seasonality_months <- c(10, 11, 12, 1, 2, 3, 4, 5, 6)
+dax_monthly <- dax_monthly %>%
+  mutate(halloween = if_else(month %in% halloween_months, 1L, 0L),
+         seasonality = if_else(month %in% seasonality_months, 1L, 0L))
+
+# `Halloween’ effect:
+summary(lm(excess_ret ~ halloween, data = dax_monthly), robust = TRUE)
+
+# excess returns are higher during the months November-April
+summary(lm(excess_ret ~ seasonality, data = dax_monthly), robust = TRUE)
+
+# compare the returns of the three different strategies on an annual basis:compare the returns of the three different strategies on an annual basis:
+dax_monthly <- dax_monthly %>%
+  mutate(excess_ret_halloween = if_else(halloween == 1, ret, rf),
+         excess_ret_halloween_short = if_else(halloween == 1, ret, -ret),
+         excess_ret_seasonality = if_else(seasonality == 1, ret, rf),
+         excess_ret_seasonality_short = if_else(seasonality == 1, ret, -ret))
+
+dax_monthly %>%
+  group_by(year) %>%
+  summarize(`Buy and Hold` = sum(excess_ret),
+            `Seasonality` = sum(excess_ret_seasonality),
+            `Seasonality-Short` = sum(excess_ret_seasonality_short),
+            `Halloween` = sum(excess_ret_halloween),
+            `Halloween-Short` = sum(excess_ret_halloween_short)) %>%
+  pivot_longer(-year, names_to = "strategy", values_to = "excess_ret") %>%
+  ggplot(aes(x = year, group = strategy)) +
+  geom_col(aes(y = excess_ret, fill = strategy), position = "dodge") +
+  labs(x = "", y = "Annual Excess Return (in %)", fill = "Strategy") +
+  scale_x_continuous(expand = c(0, 0), breaks = pretty_breaks()) +
+  theme_classic()
