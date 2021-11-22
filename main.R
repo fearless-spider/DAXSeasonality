@@ -69,3 +69,60 @@ dax_seasonality_summary %>%
   scale_x_continuous(expand = c(0, 0), breaks = pretty_breaks()) +
   scale_y_continuous(breaks = pretty_breaks()) +
   theme_classic()
+
+# Trading strategy
+dax_monthly <- dax %>%
+  mutate(year = year(date),
+         month = month(date)) %>%
+  group_by(year, month) %>%
+  slice(which.max(date)) %>%
+  ungroup() %>%
+  arrange(date) %>%
+  mutate(ret = (log(price) - lag(log(price))) * 100) %>%
+  na.omit()
+nrow(dax_monthly)
+
+#temp <- tempfile()
+#download.file("https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/Europe_3_Factors_CSV.zip",
+#              temp)
+#unzip(temp, "Europe_3_Factors.csv")
+rf_raw <- read_csv("Europe_3_Factors.csv", skip = 3)
+
+## Parsed with column specification:
+## cols(
+##   X1 = col_character(),
+##   `Mkt-RF` = col_character(),
+##   SMB = col_character(),
+##   HML = col_character(),
+##   RF = col_character()
+## )
+
+rf <- rf_raw %>%
+  mutate(date = ymd(paste0(X1, "01")),
+         year = year(date),
+         month = month(date),
+         rf = as.numeric(RF)) %>%
+  filter(date <= "2021-9-01") %>%
+  select(year, month, rf)
+
+dax_monthly <- dax_monthly %>%
+  left_join(rf, by = c("year", "month")) %>%
+  mutate(excess_ret = ret - rf) %>%
+  na.omit()
+nrow(dax_monthly) # lose a few obs b/c ff data starts in july 1990
+
+dax_monthly$month_factor <- factor(x = months(dax_monthly$date),
+                                   levels = c("January", "February", "March",
+                                              "April", "May", "June", "July",
+                                              "August", "September", "October",
+                                              "November", "December"))
+
+dax_monthly %>%
+  group_by(`Month` = month_factor) %>%
+  summarize(Mean = mean(excess_ret),
+            SD = sd(excess_ret),
+            Q05 = quantile(excess_ret, 0.05),
+            Q95 = quantile(excess_ret, 0.95),
+            `t-Statistic` = sqrt(n()) * mean(excess_ret) / sd(excess_ret) ) %>%
+  kable(digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
